@@ -77,5 +77,48 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { register, login }; // Exporter les deux fonctions
+// Fonction pour créer un lobby
+const createLobby = async (req, res) => {
+    const { name } = req.body;
+    const userId = req.user.id; // Id de l'utilisateur connecté (assuré par un middleware d'authentification)
+
+    if (!name) {
+        return res.status(400).json({ message: 'Le nom du lobby est requis' });
+    }
+
+    try {
+        // Vérifier si le lobby existe déjà (optionnel)
+        const checkQuery = 'SELECT * FROM lobbies WHERE name = ?';
+        db.query(checkQuery, [name], (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: 'Erreur du serveur' });
+            }
+
+            if (results.length > 0) {
+                return res.status(400).json({ message: 'Un lobby avec ce nom existe déjà' });
+            }
+
+            // Insérer le lobby dans la base de données
+            const insertQuery = 'INSERT INTO lobbies (name, admin_id) VALUES (?, ?)';
+            db.query(insertQuery, [name, userId], (err, results) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: 'Erreur du serveur' });
+                }
+
+                // Retourner le lobby créé
+                return res.status(201).json({
+                    message: 'Lobby créé avec succès',
+                    lobbyId: results.insertId,
+                    adminId: userId,
+                });
+            });
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Erreur du serveur' });
+    }
+};
+module.exports = { register, login, createLobby }; // Exporter les fonctions
 
