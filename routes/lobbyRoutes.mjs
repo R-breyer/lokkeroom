@@ -4,7 +4,8 @@ import {
   createLobby,
   getLobbyMessages,
   postMessage,
-  editMessage  // <-- Import de la fonction pour éditer le message
+  editMessage,  
+  deleteMessage
 } from '../controllers/lobbyController.mjs';
 
 const router = Router();
@@ -20,6 +21,10 @@ router.post('/lobby/:lobbyId/messages', authenticateJWT, postMessage);
 
 // Éditer un message (PATCH)
 router.patch('/lobby/:lobbyId/messages/:messageId', authenticateJWT, editMessage);
+
+// delete un message
+router.delete('/lobby/:lobbyId/messages/:messageId', authenticateJWT, deleteMessage);
+
 
 export default router;
 

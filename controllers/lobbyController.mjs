@@ -136,3 +136,53 @@ export async function postMessage(req, res) {
     return res.status(500).json({ message: 'Erreur serveur' });
   }
 }
+
+
+/**
+ * Supprimer un message en tant qu'admin du lobby
+ * DELETE /api/lobby/:lobbyId/messages/:messageId
+ */
+ export async function deleteMessage(req, res) {
+  try {
+    const { lobbyId, messageId } = req.params;
+    const userId = req.user.id;     // depuis le token JWT (authMiddleware)
+    const userRole = req.user.role; // s’il y a un champ 'role' dans le JWT
+    // OU éventuellement récupérer le role depuis la DB
+
+    // 1. Vérifier si le lobby existe
+    const lobbyRows = await query('SELECT admin_id FROM lobbies WHERE id = ?', [lobbyId]);
+    if (lobbyRows.length === 0) {
+      return res.status(404).json({ message: 'Lobby introuvable' });
+    }
+
+    const { admin_id } = lobbyRows[0];
+
+    // 2. Vérifier que l'utilisateur est admin du lobby
+    //    - Soit on compare userId === admin_id (admin "local" du lobby)
+    //    - Ou on compare userRole === 'admin' (si c’est un admin global)
+    // Exemple : on considère "admin_id" comme "l'admin du lobby"
+    if (admin_id !== userId) {
+      return res.status(403).json({ message: 'Vous devez être admin du lobby pour supprimer un message.' });
+    }
+
+    // 3. Vérifier si le message existe
+    const messageRows = await query(
+      'SELECT id FROM messages WHERE id = ? AND lobby_id = ?',
+      [messageId, lobbyId]
+    );
+    if (messageRows.length === 0) {
+      return res.status(404).json({ message: 'Message introuvable' });
+    }
+
+    // 4. Supprimer le message
+    await query(
+      'DELETE FROM messages WHERE id = ? AND lobby_id = ?',
+      [messageId, lobbyId]
+    );
+
+    return res.status(200).json({ message: 'Message supprimé avec succès' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erreur lors de la suppression du message' });
+  }
+}
